@@ -360,40 +360,65 @@
             gap: 12px;
         }
 
-        .copy-all-btn {
+        .btn-group {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .action-btn {
             display: flex;
             align-items: center;
             gap: 8px;
             background: var(--navy);
             color: white;
             border: none;
-            padding: 12px 24px;
+            padding: 12px 20px;
             border-radius: 25px;
-            font-size: 0.9rem;
+            font-size: 0.85rem;
             font-weight: 500;
             cursor: pointer;
             transition: all 0.3s ease;
         }
 
-        .copy-all-btn:hover {
+        .action-btn:hover {
             background: var(--navy-light);
             transform: translateY(-2px);
             box-shadow: 0 5px 20px rgba(26, 54, 93, 0.3);
         }
 
-        .copy-all-btn svg {
-            width: 18px;
-            height: 18px;
+        .action-btn svg {
+            width: 16px;
+            height: 16px;
             fill: white;
         }
 
-        .copy-all-btn.copied {
+        .action-btn.copied {
             background: var(--gold);
             color: var(--navy);
         }
 
-        .copy-all-btn.copied svg {
+        .action-btn.copied svg {
             fill: var(--navy);
+        }
+
+        .action-btn.retry-btn {
+            background: transparent;
+            border: 2px solid var(--navy);
+            color: var(--navy);
+        }
+
+        .action-btn.retry-btn svg {
+            fill: var(--navy);
+        }
+
+        .action-btn.retry-btn:hover {
+            background: var(--navy);
+            color: white;
+        }
+
+        .action-btn.retry-btn:hover svg {
+            fill: white;
         }
 
         .color-grid {
@@ -720,10 +745,20 @@
                     <span class="section-number">2</span>
                     <h2 class="section-title">Color Palette</h2>
                 </div>
-                <button class="copy-all-btn" id="copyBtn">
-                    <svg viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>
-                    一键复制全部
-                </button>
+                <div class="btn-group">
+                    <button class="action-btn retry-btn" id="retryBtn">
+                        <svg viewBox="0 0 24 24"><path d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg>
+                        重新分析
+                    </button>
+                    <button class="action-btn" id="copyLineBtn">
+                        <svg viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>
+                        复制单行
+                    </button>
+                    <button class="action-btn" id="copyMultiBtn">
+                        <svg viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>
+                        复制多行
+                    </button>
+                </div>
             </div>
 
             <div class="color-grid" id="colorGrid"></div>
@@ -768,11 +803,14 @@
         const results = document.getElementById('results');
         const canvas = document.getElementById('canvas');
         const ctx = canvas.getContext('2d');
-        const copyBtn = document.getElementById('copyBtn');
+        const retryBtn = document.getElementById('retryBtn');
+        const copyLineBtn = document.getElementById('copyLineBtn');
+        const copyMultiBtn = document.getElementById('copyMultiBtn');
         const toast = document.getElementById('toast');
         const toastText = document.getElementById('toastText');
 
         let extractedColors = [];
+        let currentImageSrc = null;
 
         uploadZone.addEventListener('click', () => fileInput.click());
 
@@ -824,7 +862,8 @@
         function processImage(file) {
             const reader = new FileReader();
             reader.onload = (e) => {
-                preview.src = e.target.result;
+                currentImageSrc = e.target.result;
+                preview.src = currentImageSrc;
                 preview.classList.add('show');
                 previewPlaceholder.style.display = 'none';
                 loading.classList.add('show');
@@ -834,12 +873,26 @@
                 img.onload = () => {
                     extractColors(img);
                 };
-                img.src = e.target.result;
+                img.src = currentImageSrc;
             };
             reader.readAsDataURL(file);
         }
 
-        function extractColors(img) {
+        // 重新分析按钮
+        retryBtn.addEventListener('click', () => {
+            if (!currentImageSrc) return;
+
+            loading.classList.add('show');
+            results.classList.remove('show');
+
+            const img = new Image();
+            img.onload = () => {
+                extractColors(img, true);
+            };
+            img.src = currentImageSrc;
+        });
+
+        function extractColors(img, randomize = false) {
             const maxSize = 150;
             let width = img.width;
             let height = img.height;
@@ -884,7 +937,7 @@
                 .sort((a, b) => b[1] - a[1]);
 
             const totalPixels = sortedColors.reduce((sum, c) => sum + c[1], 0);
-            const distinctColors = getDistinctColors(sortedColors, totalPixels);
+            const distinctColors = getDistinctColors(sortedColors, totalPixels, randomize);
 
             displayResults(distinctColors);
 
@@ -892,12 +945,20 @@
             results.classList.add('show');
         }
 
-        function getDistinctColors(sortedColors, totalPixels) {
+        function getDistinctColors(sortedColors, totalPixels, randomize = false) {
             const result = [];
-            const minDistance = 50;
+            // 重新分析时使用随机的最小距离，产生不同结果
+            const minDistance = randomize ? 30 + Math.random() * 40 : 50;
+            // 重新分析时从候选颜色中随机跳过一些
+            const skipChance = randomize ? 0.3 : 0;
 
             for (const [colorStr, count] of sortedColors) {
                 if (result.length >= 5) break;
+
+                // 随机跳过某些颜色以产生不同结果
+                if (randomize && result.length > 0 && Math.random() < skipChance) {
+                    continue;
+                }
 
                 const [r, g, b] = colorStr.split(',').map(Number);
 
@@ -1000,24 +1061,35 @@
             });
         }
 
-        copyBtn.addEventListener('click', () => {
+        // 复制单行（空格分隔）
+        copyLineBtn.addEventListener('click', () => {
+            const colorText = extractedColors.map(c => c.hex).join(' ');
+            copyToClipboard(colorText);
+            showCopySuccess(copyLineBtn, '复制单行');
+        });
+
+        // 复制多行（换行分隔）
+        copyMultiBtn.addEventListener('click', () => {
             const colorText = extractedColors.map(c => c.hex).join('\n');
             copyToClipboard(colorText);
+            showCopySuccess(copyMultiBtn, '复制多行');
+        });
 
-            copyBtn.classList.add('copied');
-            copyBtn.innerHTML = `
+        function showCopySuccess(btn, originalText) {
+            btn.classList.add('copied');
+            btn.innerHTML = `
                 <svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
-                已复制 ${extractedColors.length} 个色值
+                已复制
             `;
 
             setTimeout(() => {
-                copyBtn.classList.remove('copied');
-                copyBtn.innerHTML = `
+                btn.classList.remove('copied');
+                btn.innerHTML = `
                     <svg viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>
-                    一键复制全部
+                    ${originalText}
                 `;
-            }, 2000);
-        });
+            }, 1500);
+        }
 
         function copyToClipboard(text) {
             navigator.clipboard.writeText(text).catch(() => {
