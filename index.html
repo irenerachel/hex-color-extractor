@@ -752,11 +752,11 @@
                     </button>
                     <button class="action-btn" id="copyLineBtn">
                         <svg viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>
-                        复制单行
+                        复制为单行
                     </button>
                     <button class="action-btn" id="copyMultiBtn">
                         <svg viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>
-                        复制多行
+                        复制为多行
                     </button>
                 </div>
             </div>
@@ -1061,18 +1061,18 @@
             });
         }
 
-        // 复制单行（空格分隔）
+        // 复制为单行（空格分隔）
         copyLineBtn.addEventListener('click', () => {
             const colorText = extractedColors.map(c => c.hex).join(' ');
             copyToClipboard(colorText);
-            showCopySuccess(copyLineBtn, '复制单行');
+            showCopySuccess(copyLineBtn, '复制为单行');
         });
 
-        // 复制多行（换行分隔）
+        // 复制为多行（换行分隔）
         copyMultiBtn.addEventListener('click', () => {
             const colorText = extractedColors.map(c => c.hex).join('\n');
             copyToClipboard(colorText);
-            showCopySuccess(copyMultiBtn, '复制多行');
+            showCopySuccess(copyMultiBtn, '复制为多行');
         });
 
         function showCopySuccess(btn, originalText) {
